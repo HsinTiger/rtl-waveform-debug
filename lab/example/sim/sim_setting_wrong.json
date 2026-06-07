@@ -1,0 +1,19 @@
+{
+  "phy_calc": {
+    "parameters": {
+      "gain": 16,
+      "shift_bits": 3,
+      "offset": 0,
+      "round_mode": "truncation",
+      "data_width": 16,
+      "latency_cycles": 2
+    },
+    "phyUD": {
+      "dump_nodes": [
+        "phy_calc.out_val"
+      ],
+      "dump_format": "hex",
+      "dump_scope": "tb"
+    }
+  }
+}

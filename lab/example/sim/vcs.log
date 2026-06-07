@@ -1,0 +1,16 @@
+*** VCS MX 2023.12 ***
+Simulation started: 2026-06-07
+
+sim_setting loaded: /proj/lab/sim/sim_setting.json
+phyUD platform version: 4.21
+Intermediate nodes to dump: phy_calc.out_val
+
+UVM_INFO @ 0: Reset sequence started
+UVM_INFO @ 10: Reset done
+
+UVM_ERROR @ 30 ns: TXCMP mismatch cycle=0 exp=0x003F got=0x003E
+UVM_ERROR @ 90 ns: TXCMP mismatch cycle=2 exp=0x0139 got=0x0138
+
+UVM_ERROR Count: 2
+UVM_FATAL: 0
+*** Simulation finished ***
