@@ -32,11 +32,11 @@ what the values *are*.
 | `python3 tools/vcd.py list dump.vcd [--match X]` | enumerate real signal names (use to verify a name exists) |
 | `python3 tools/vcd.py value dump.vcd <sig> <time>` | exact value of a signal at a time |
 | `python3 tools/vcd.py changes dump.vcd <sig> [t0] [t1]` | all transitions of a signal in a window |
-| `python3 tools/vcd.py wavejson dump.vcd --clk <clk> --sig a b c [--t0 N --t1 N]` | reconstruct WaveJSON sampled at clk posedges |
+| `python3 tools/vcd.py wavejson dump.vcd --clk <clk> --sig a b c [--t0 N --t1 N]` | reconstruct WaveJSON sampled at clk posedges. **Use --t0/--t1 to limit the time window** — even if the VCD is large, this extracts only the window you care about. |
 | `python3 tools/cmodel_hex.py golden.hex [--node phyUD]` | load golden series as `idx<TAB>hex` |
-| `python3 tools/compare.py dump.vcd --clk <clk> --sig <node> golden.hex [--node phyUD] [--skip-x]` | **find the first divergence** RTL-vs-golden (rc 3 = mismatch) |
+| `python3 tools/compare.py dump.vcd --clk <clk> --sig <node> golden.hex [--node phyUD] [--skip-x] [--t0 N --t1 N]` | **find the first divergence** RTL-vs-golden (rc 3 = mismatch). Use `--t0`/`--t1` to compare only a specific time window. |
 | `sh tools/render_wavedrom.sh wave.json5 out.svg` | render WaveJSON to SVG for the engineer |
-| `sh tools/fsdb2vcd.sh in.fsdb out.vcd` | convert FSDB→VCD (Verdi) |
+| `sh tools/fsdb2vcd.sh input.fsdb [--bt N --et N --scope S] -o out.vcd` | convert FSDB→VCD with optional **time slicing** (`--bt`/`--et` in FSDB timescale units) and **scope filtering** (`--scope`). Use for large FSDBs when you only need a small time window or a specific hierarchy. |
 
 ## Loop A — Debug a failing test (golden-driven)
 

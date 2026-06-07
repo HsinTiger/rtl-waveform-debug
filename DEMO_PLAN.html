@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTL Waveform Debug — 3 天上線 Demo 計劃</title>
+<style>
+  :root {
+    --c1: #1a1a2e; --c2: #16213e; --c3: #0f3460;
+    --accent: #e94560; --gold: #f5c518; --green: #2ecc71;
+    --blue: #3498db; --orange: #f39c12; --bg: #f8f9fa;
+    --card: #ffffff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif; background: var(--bg); color: #333; line-height: 1.6; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+  /* header */
+  header {
+    background: linear-gradient(135deg,var(--c1),var(--c3));
+    color: #fff; padding: 40px 0; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  header h1 { font-size: 2.2em; margin-bottom: 8px; }
+  header .subtitle { font-size: 1.1em; opacity: .85; }
+  header .badge { display: inline-block; background: var(--accent); color: #fff; padding: 4px 16px; border-radius: 20px; font-size: .85em; margin-top: 12px; }
+
+  /* day selector - top timeline */
+  .timeline-bar {
+    display: flex; justify-content: center; gap: 8px;
+    padding: 24px 0 16px; flex-wrap: wrap;
+  }
+  .day-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 22px; border-radius: 30px; font-weight: 700;
+    cursor: pointer; transition: all .2s; border: 2px solid #ddd;
+    background: #fff; font-size: .95em;
+  }
+  .day-pill:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+  .day-pill.active { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .day-pill .day-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 50%;
+    font-size: .85em; font-weight: 700;
+  }
+  .day-pill:not(.active) .day-num { background: var(--c3); color: #fff; }
+  .day-pill.active .day-num { background: rgba(255,255,255,.25); }
+
+  /* sections */
+  .day-section { display: none; animation: fadeIn .35s ease; }
+  .day-section.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .section-title {
+    font-size: 1.5em; font-weight: 700; margin: 24px 0 16px;
+    padding-bottom: 8px; border-bottom: 3px solid var(--accent);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title .emoji { font-size: 1.2em; }
+
+  /* card grid */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card {
+    background: var(--card); border-radius: 12px; padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06); border: 1px solid #eee;
+    transition: all .2s;
+  }
+  .card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.1); transform: translateY(-2px); }
+  .card h3 { font-size: 1.05em; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .card .time { font-size: .8em; color: #888; }
+  .card .cmd { background: #1a1a2e; color: #a8e6cf; padding: 10px 14px; border-radius: 8px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: .85em; margin: 10px 0; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+  .card .cmd .comment { color: #6c9; }
+  .card .tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: .75em; font-weight: 600; margin-right: 4px; }
+  .tag-tool { background: #e8f4fd; color: #2196f3; }
+  .tag-flow { background: #e8f5e9; color: #4caf50; }
+  .tag-risk { background: #fff3e0; color: #ff9800; }
+  .tag-demo { background: #fce4ec; color: #e91e63; }
+  .card .check { color: var(--green); font-weight: 700; margin-right: 4px; }
+
+  /* PPT 6-pages preview */
+  .ppt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  .ppt-card {
+    background: linear-gradient(135deg,#1a1a2e,#0f3460);
+    color: #fff; border-radius: 14px; padding: 24px;
+    position: relative; min-height: 200px;
+    display: flex; flex-direction: column;
+  }
+  .ppt-card .page-num {
+    position: absolute; top: 12px; right: 16px;
+    font-size: .75em; opacity: .5; font-weight: 600;
+  }
+  .ppt-card h3 { font-size: 1.15em; margin-bottom: 8px; }
+  .ppt-card p { font-size: .9em; opacity: .85; flex: 1; }
+  .ppt-card .bullet { font-size: .82em; opacity: .7; margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--accent); }
+  .ppt-card.accent { background: linear-gradient(135deg, #e94560, #c0392b); }
+  .ppt-card.gold { background: linear-gradient(135deg, #f5c518, #e67e22); color: #1a1a2e; }
+  .ppt-card.gold p { color: #333; }
+  .ppt-card.green { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+  .ppt-card.blue { background: linear-gradient(135deg, #3498db, #2980b9); }
+
+  /* flowchart */
+  .flowchart { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 16px; background: #fff; border-radius: 12px; border: 1px dashed #ccc; margin: 16px 0; justify-content: center; }
+  .flow-step { background: var(--c3); color: #fff; padding: 8px 16px; border-radius: 8px; font-size: .85em; font-weight: 600; }
+  .flow-arrow { color: #999; font-size: 1.2em; }
+  .flow-step.tool { background: var(--blue); }
+  .flow-step.llm { background: var(--orange); color: #1a1a2e; }
+  .flow-step.output { background: var(--green); }
+
+  /* timeline vertical */
+  .v-timeline { position: relative; padding-left: 30px; margin: 16px 0; }
+  .v-timeline::before { content: ''; position: absolute; left: 10px; top: 0; bottom: 0; width: 3px; background: #e0e0e0; }
+  .v-item { position: relative; margin-bottom: 20px; padding-left: 16px; }
+  .v-item::before { content: ''; position: absolute; left: -24px; top: 6px; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); border: 3px solid #fff; box-shadow: 0 0 0 2px var(--accent); }
+  .v-item.green::before { background: var(--green); box-shadow: 0 0 0 2px var(--green); }
+  .v-item.blue::before { background: var(--blue); box-shadow: 0 0 0 2px var(--blue); }
+  .v-item h4 { font-size: .95em; margin-bottom: 4px; }
+  .v-item p { font-size: .85em; color: #666; }
+  .v-item .cmd-inline { background: #1a1a2e; color: #a8e6cf; padding: 4px 10px; border-radius: 4px; font-family: monospace; font-size: .82em; display: inline-block; margin-top: 4px; }
+
+  /* comparison table */
+  .cmp-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9em; }
+  .cmp-table th { background: var(--c3); color: #fff; padding: 10px 14px; text-align: left; }
+  .cmp-table td { padding: 10px 14px; border-bottom: 1px solid #eee; }
+  .cmp-table tr:hover td { background: #f5f5f5; }
+
+  /* footer */
+  footer { text-align: center; padding: 40px 0 20px; color: #999; font-size: .85em; }
+
+  /* map path connectors */
+  .path-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 4px 0 12px; }
+  .path-step { padding: 4px 12px; border-radius: 6px; font-size: .78em; font-weight: 600; }
+  .path-step.exp { background: #fff3cd; color: #856404; }
+  .path-step.extend { background: #d1ecf1; color: #0c5460; }
+  .path-step.solve { background: #d4edda; color: #155724; }
+  .path-step.demo { background: #f8d7da; color: #721c24; }
+  .path-arrow { color: #999; font-size: .9em; }
+
+  /* goal banner */
+  .goal-banner {
+    background: linear-gradient(135deg, #1a1a2e, #0f3460);
+    color: #fff; border-radius: 14px; padding: 24px 30px;
+    margin: 20px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+  }
+  .goal-banner .goal-icon { font-size: 2em; }
+  .goal-banner .goal-text { flex: 1; }
+  .goal-banner .goal-text h2 { font-size: 1.2em; margin-bottom: 4px; }
+  .goal-banner .goal-text p { opacity: .8; font-size: .9em; }
+
+  /* error source cards */
+  .err-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin: 16px 0; }
+  .err-card { border-radius: 12px; padding: 18px; color: #fff; }
+  .err-card.a { background: linear-gradient(135deg,#e74c3c,#c0392b); }
+  .err-card.b { background: linear-gradient(135deg,#f39c12,#d35400); }
+  .err-card.c { background: linear-gradient(135deg,#3498db,#2980b9); }
+  .err-card.d { background: linear-gradient(135deg,#9b59b6,#8e44ad); }
+  .err-card .err-code { font-size: 1.8em; font-weight: 800; opacity: .5; float: right; }
+  .err-card h4 { font-size: 1em; margin-bottom: 4px; }
+  .err-card .pct { font-size: 1.6em; font-weight: 800; }
+  .err-card p { font-size: .82em; opacity: .85; }
+
+  /* flow diagram */
+  .check-flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; padding: 16px; background: #fff; border-radius: 12px; border: 1px dashed #ccc; margin: 12px 0; }
+  .cf-step { padding: 8px 16px; border-radius: 8px; font-size: .82em; font-weight: 700; }
+  .cf-step.c { background: #3498db; color: #fff; }
+  .cf-step.b { background: #f39c12; color: #1a1a2e; }
+  .cf-step.ad { background: #e74c3c; color: #fff; }
+  .cf-arrow { color: #999; font-size: 1.1em; }
+  .cf-done { padding: 4px 10px; border-radius: 12px; font-size: .72em; background: #2ecc71; color: #fff; }
+  .cf-next { padding: 4px 10px; border-radius: 12px; font-size: .72em; background: #e74c3c; color: #fff; }
+
+  /* fingerprint table */
+  .fp-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .82em; }
+  .fp-table th { background: var(--c3); color: #fff; padding: 6px 10px; text-align: left; font-weight: 600; }
+  .fp-table td { padding: 6px 10px; border-bottom: 1px solid #eee; }
+  .fp-table tr:hover td { background: #f0f0f0; }
+  .fp-table .tag-a { background: #fce4ec; color: #c62828; padding: 2px 8px; border-radius: 10px; font-size: .8em; font-weight: 600; }
+  .fp-table .tag-b { background: #fff3e0; color: #e65100; padding: 2px 8px; border-radius: 10px; font-size: .8em; font-weight: 600; }
+  .fp-table .tag-c { background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 10px; font-size: .8em; font-weight: 600; }
+  .fp-table .tag-d { background: #f3e5f5; color: #7b1fa2; padding: 2px 8px; border-radius: 10px; font-size: .8em; font-weight: 600; }
+
+  /* output template box */
+  .tpl-box { background: #1a1a2e; color: #a8e6cf; padding: 16px; border-radius: 10px; font-family: 'SF Mono', monospace; font-size: .78em; margin: 12px 0; white-space: pre-wrap; line-height: 1.5; }
+  .tpl-box .hl { color: #f5c518; }
+  .tpl-box .h2 { color: #e94560; }
+  .tpl-box .dim { opacity: .5; }
+
+  .btn { display: inline-block; padding: 8px 20px; border-radius: 8px; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; font-size: .85em; transition: all .2s; }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(233,69,96,.4); }
+
+  /* checkmark list */
+  .chk-list { list-style: none; padding: 0; }
+  .chk-list li { padding: 4px 0; font-size: .88em; }
+  .chk-list li::before { content: "✅ "; }
+  .chk-list li.pending::before { content: "⬜ "; }
+
+  @media (max-width: 700px) {
+    .card-grid { grid-template-columns: 1fr; }
+    .ppt-grid { grid-template-columns: 1fr; }
+    header h1 { font-size: 1.5em; }
+    .day-pill { font-size: .82em; padding: 8px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>📊 RTL 波形 Debug Pipeline</h1>
+    <div class="subtitle">3 天上線計劃 — 從實驗打通 → 情境延伸 → 6 頁 PPT Demo</div>
+    <div class="badge">🎯 下週 Demo 倒數</div>
+  </div>
+</header>
+
+<div class="container">
+
+<!-- ============================================================ -->
+<!-- GOAL BANNER -->
+<!-- ============================================================ -->
+<div class="goal-banner">
+  <div class="goal-icon">🎯</div>
+  <div class="goal-text">
+    <h2>終點：6 頁 Demo PPT</h2>
+    <p>
+     證明這套 pipeline 能 <strong>從 FSDB/VCD 自動定位 RTL bug、產出時序圖、給出根因解釋</strong>，
+     並且<strong>知道大規模部署會撞到什麼牆、怎麼解決</strong>。
+    </p>
+  </div>
+  <a href="#ppt" class="btn">跳到 6 頁 PPT →</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- ERROR SOURCE MATRIX (NEW) -->
+<!-- ============================================================ -->
+<div class="section-title"><span class="emoji">🎯</span> 四種錯誤來源 + 概率分布</div>
+
+<div class="err-grid">
+  <div class="err-card a">
+    <span class="err-code">A</span>
+    <h4>🔴 RTL behavior 電路設計</h4>
+    <div class="pct">25–35%</div>
+    <p>Corner case、介面協議不一致、operating mode 路徑。嚴重性最高。跨 config 都 fail → A 高度可疑。</p>
+  </div>
+  <div class="err-card b">
+    <span class="err-code">B</span>
+    <h4>🟠 TXCMP/RXCMP Checker</h4>
+    <div class="pct">30–45%</div>
+    <p><strong>最大宗</strong>。比對時間窗錯、off-by-one、latency mismatch。紅燈 &gt; 50% 是 checker 在叫，不是電路在錯。</p>
+  </div>
+  <div class="err-card c">
+    <span class="err-code">C</span>
+    <h4>🔵 sim_setting.json</h4>
+    <div class="pct">10–20%</div>
+    <p>DV 拿到舊版/錯誤 config，或參數組合非預期。最快確認（diff 2 分鐘），通常 DV 自己就先發現了。</p>
+  </div>
+  <div class="err-card d">
+    <span class="err-code">D</span>
+    <h4>🟣 phyUD C++ 實作</h4>
+    <div class="pct">5–15%</div>
+    <p>多數 fixed-point 精度（truncation vs rounding）。少數才是 behavior 寫錯。跨多個 checker 同時 fail → D。</p>
+  </div>
+</div>
+
+<!-- CHECK ORDER -->
+<div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #eee;margin-bottom:20px;">
+  <h3 style="font-size:1em;margin-bottom:10px;">🔍 Check Order（最短 debug 路徑）</h3>
+  <div class="check-flow">
+    <span class="cf-step c">Step 1: Config Diff</span>
+    <span class="cf-arrow">→</span>
+    <span class="cf-done">有差異 → 結案 ▸ 重新拿 json</span>
+    <span class="cf-arrow">→</span>
+    <span class="cf-next">一致 → 繼續</span>
+  </div>
+  <div class="check-flow">
+    <span class="cf-step b">Step 2: Checker Timing</span>
+    <span class="cf-arrow">→</span>
+    <span class="cf-done">有誤 → 結案 ▸ 修正 checker</span>
+    <span class="cf-arrow">→</span>
+    <span class="cf-next">無誤 → 繼續</span>
+  </div>
+  <div class="check-flow">
+    <span class="cf-step ad">Step 3: RTL vs Spec 比對</span>
+    <span class="cf-arrow">→</span>
+    <span class="cf-done">RTL ≠ Spec → A（RTL bug）</span>
+    <span class="cf-arrow">→</span>
+    <span class="cf-done">RTL = Spec → D（C++ bug）</span>
+  </div>
+</div>
+
+<!-- Agent Report Output Format Preview -->
+<div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #eee;margin-bottom:20px;">
+  <h3 style="font-size:1em;margin-bottom:10px;">📋 Agent 最終輸出格式（三大方向 + 概率）</h3>
+  <div class="tpl-box">---
+<span class="hl">🕐 錯誤時間定位</span>：T = 1525ns，signal = tb.dut.phyUD
+
+<span class="hl">🔍 compare.py 分歧點</span>：index=12 @ T=1525, golden=<span class="h2">0xA5</span>, actual=<span class="h2">0x5A</span>
+
+<span class="hl">📊 三大可能方向 + 概率分布</span>：
+1. [<span class="h2">高概率 55%</span>] TX/RX Data Mismatch
+   → tx_valid 邏輯 shift 1 cycle → 看 RTL line 145-180
+2. [<span class="h2">中概率 25%</span>] Checker Timing（TXCMP）
+   → exp/act 差 1 cycle → 看 checker 的 latency parameter
+3. [<span class="h2">低概率 20%</span>] sim_setting.json
+   → freq_ratio 可能不對 → diff 確認
+
+<span class="dim">_概率總和 90%・保留 10% 給未預期錯誤_</span></div>
+  <p style="font-size:.85em;color:#888;">Agent 只提供方向與建議動作，DD/SD owner 做最終判斷。</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- DAY SELECTOR -->
+<!-- ============================================================ -->
+<div class="timeline-bar">
+  <div class="day-pill active" onclick="showDay(1)">
+    <span class="day-num">1</span> 打底實驗
+    <span style="font-size:.75em;opacity:.7;">2h</span>
+  </div>
+  <div class="day-pill" onclick="showDay(2)">
+    <span class="day-num">2</span> 情境延伸
+    <span style="font-size:.75em;opacity:.7;">4h</span>
+  </div>
+  <div class="day-pill" onclick="showDay(3)">
+    <span class="day-num">3</span> 結論 + PPT
+    <span style="font-size:.75em;opacity:.7;">4h</span>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- DAY 1 -->
+<!-- ============================================================ -->
+<div class="day-section active" id="day1">
+
+  <div class="section-title"><span class="emoji">🧪</span> Day 1 — 打底實驗 <span style="font-size:.55em;font-weight:400;opacity:.6;margin-left:8px;">預估 2h · 先求動起來</span></div>
+  <p style="margin-bottom:16px;color:#666;font-size:.92em;">
+    目標：讓整條工具鏈 <strong>跑得動</strong>，拿到第一個確定性輸出。
+    先挑一個 <strong>你已知答案的小 failing case</strong>，不要挑最難的 bug。
+  </p>
+
+  <div class="card-grid">
+
+    <div class="card">
+      <h3>✅ 1.1 環境確認 + Smoke Test</h3>
+      <div class="time">⏱ 15 min</div>
+      <p>確定 Python、Verdi、工具檔都在正確位置。</p>
+      <div class="cmd"><span class="comment"># 從 repo 根目錄執行</span>
+git clone https://github.com/HsinTiger/rtl-waveform-debug.git
+cd rtl-waveform-debug
+sh tools/_selftest.sh</div>
+      <p style="font-size:.82em;color:#666;">預期：6 項 ALL PASS。任何 FAIL 先修環境。</p>
+      <ul class="chk-list">
+        <li>_selftest.sh ALL PASS</li>
+        <li class="pending">確認 Python ≥ 3.8</li>
+        <li class="pending">確認 Verdi PATH（如果要用 FSDB）</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>✅ 1.2 FSDB → VCD 轉換</h3>
+      <div class="time">⏱ 20 min</div>
+      <p>把你的 FSDB 轉成 LLM 看得懂的純文字 VCD。</p>
+      <div class="cmd"><span class="comment"># 方式 A：整檔轉（小檔案）</span>
+./tools/fsdb2vcd.sh your.fsdb your.vcd
+
+<span class="comment"># 方式 B：時間切片轉（大檔案推薦）</span>
+./tools/fsdb2vcd.sh your.fsdb --bt 1000 --et 3000 -o slice.vcd
+
+<span class="comment"># 方式 C：時間 + Scope（最推薦）</span>
+fsdb2vcd -l your.fsdb | head -30   <span class="comment"># 先看 scope 層級</span>
+./tools/fsdb2vcd.sh your.fsdb \
+  --bt 2000 --et 3000 \
+  --scope tb.dut.phy_ud -o smart.vcd</div>
+      <p><span class="tag tag-tool">fsdb2vcd.sh</span> <span class="tag tag-flow">time slicing</span></p>
+      <ul class="chk-list">
+        <li>VCD 成功產出，大小確認</li>
+        <li class="pending">head -20 VCD 看到 $timescale 和 scope 宣告</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>✅ 1.3 VCD 查詢 — 確定性互動</h3>
+      <div class="time">⏱ 20 min</div>
+      <p>用 vcd.py 對 VCD 做基本查詢，確認工具能正確讀取你的波形。</p>
+      <div class="cmd"><span class="comment"># 列出所有訊號</span>
+python3 tools/vcd.py list your.vcd | head -30
+
+<span class="comment"># 查 clk 的完整 path</span>
+python3 tools/vcd.py list your.vcd --match clk
+
+<span class="comment"># 查某訊號在某時刻的值</span>
+python3 tools/vcd.py value your.vcd tb.clk 1500
+
+<span class="comment"># 查某訊號在時間範圍內的變化</span>
+python3 tools/vcd.py changes your.vcd tb.dut.data 2000 3000</div>
+      <p><span class="tag tag-tool">vcd.py</span> <span class="tag tag-flow">query</span></p>
+      <ul class="chk-list">
+        <li>至少 1 個訊號 value 查詢成功</li>
+        <li class="pending">能找到 clk 的完整 scope path</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>✅ 1.4 轉 WaveJSON + 渲染</h3>
+      <div class="time">⏱ 15 min</div>
+      <p>把一小段實際波形轉成 WaveJSON 格式，再用 wavedrom 渲染成給人看的圖。</p>
+      <div class="cmd"><span class="comment"># 轉成 WaveJSON（指定 clk 和想看的訊號）</span>
+python3 tools/vcd.py wavejson your.vcd \
+  --clk tb.clk \
+  --sig tb.req tb.ack tb.data \
+  --t0 2000 --t1 3000 > wave.json5
+
+<span class="comment"># 檢查 JSON 格式</span>
+cat wave.json5
+
+<span class="comment"># 渲染成 SVG 圖片</span>
+sh tools/render_wavedrom.sh wave.json5 wave.svg</div>
+      <p><span class="tag tag-tool">vcd.py wavejson</span> <span class="tag tag-tool">render_wavedrom.sh</span></p>
+      <ul class="chk-list">
+        <li>wave.json5 格式正確（訊號名、data 陣列對齊）</li>
+        <li class="pending">wave.svg 在瀏覽器打得開、看得到波形</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>✅ 1.5 跟 C-model Golden 比對</h3>
+      <div class="time">⏱ 20 min</div>
+      <p><strong>如果你有 C-model golden hex</strong>——這是本 pipeline 最強的功能，用 compare.py 確定性找出 RTL 跟 golden 的第一個分歧。</p>
+      <div class="cmd"><span class="comment"># 確認 cmodel hex 格式可被解析</span>
+python3 tools/cmodel_hex.py phyUD.hex --node phyUD | head -5
+
+<span class="comment"># 找出第一個分歧</span>
+python3 tools/compare.py your.vcd \
+  --clk tb.clk \
+  --sig tb.dut.phyUD \
+  phyUD.hex --node phyUD --skip-x</div>
+      <p><span class="tag tag-flow">⭐ golden-driven debug</span> <span class="tag tag-risk">最強路徑</span></p>
+      <ul class="chk-list">
+        <li>compare.py 回傳 match 或第一個分歧點</li>
+        <li class="pending">分歧點跟你已知的根因吻合 → pipeline 可信</li>
+        <li class="pending">不吻合 → 檢查 clk path / --skip-x / hex 格式</li>
+      </ul>
+    </div>
+
+    <div class="card" style="border:2px solid var(--accent);">
+      <h3>🎯 Day 1 驗收</h3>
+      <p>你已從「原廠 FSDB + 設計檔案」出發，走通了整條路徑：</p>
+      <div class="flowchart" style="margin:12px 0;">
+        <span class="flow-step">FSDB</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step tool">fsdb2vcd</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step tool">vcd.py</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step tool">compare.py</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step output">分歧點</span>
+      </div>
+      <p style="font-size:.88em;color:#666;">Day 1 結束時，你手上應該有：<br>
+      ✅ 一張實際 wave.svg 時序圖<br>
+      ✅ 一個 compare.py 分歧點報告<br>
+      ✅ 知道 pipeline 在你環境「能動」</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- DAY 2 -->
+<!-- ============================================================ -->
+<div class="day-section" id="day2">
+
+  <div class="section-title"><span class="emoji">🧩</span> Day 2 — 情境延伸 <span style="font-size:.55em;font-weight:400;opacity:.6;margin-left:8px;">預估 4h · 驗證 pipeline 的邊界</span></div>
+  <p style="margin-bottom:16px;color:#666;font-size:.92em;">
+    目標：從「簡單實驗」延伸到 <strong>真實場景中會遇到的情境變化</strong>，
+    並對應到 <strong>DEPLOYMENT_GUIDE.md 中的解決方案</strong>，證明 pipeline 不是只有 demo 能跑。
+  </p>
+
+  <table class="cmp-table">
+    <thead><tr><th style="width:20%;">情境</th><th style="width:30%;">簡單實驗（Day 1）</th><th style="width:30%;">延伸挑戰（Day 2）</th><th style="width:20%;">對應解法</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>VCD 變超大</strong></td>
+        <td>小 FSDB，整檔轉 VCD</td>
+        <td>1GB FSDB → 8GB VCD 怎麼辦？<br>試 <code>--bt 5000 --et 6000 --scope tb.dut</code></td>
+        <td><span class="tag tag-risk">VCD Blow-up</span></td>
+      </tr>
+      <tr>
+        <td><strong>訊號名找不到</strong></td>
+        <td>用已知的短名查</td>
+        <td><code>vcd.py value your.vcd data 100</code> 報 ambiguous → 改用完整 path</td>
+        <td><span class="tag tag-risk">訊號名歧義</span></td>
+      </tr>
+      <tr>
+        <td><strong>沒有 C-model golden</strong></td>
+        <td>有 golden，直接 compare</td>
+        <td>只有 vcs.log + VCD → 從 log 找出錯時間 + 訊號名，用 vcd.py 手動查</td>
+        <td><span class="tag tag-flow">情境 B</span></td>
+      </tr>
+      <tr>
+        <td><strong>Golden 格式抓不到</strong></td>
+        <td>hex 格式是 standard</td>
+        <td>Custom format（"phyUD=0xA5"）→ adapter 需修改</td>
+        <td><span class="tag tag-risk">格式不一致</span></td>
+      </tr>
+      <tr>
+        <td><strong>LLM 產出幻覺</strong></td>
+        <td>人 review</td>
+        <td>假設你不在，agent 報的結論你敢不敢信？</td>
+        <td><span class="tag tag-risk">幻覺管控</span></td>
+      </tr>
+      <tr>
+        <td><strong>Verdi license 不夠</strong></td>
+        <td>手動轉 1 次</td>
+        <td>Nightly regression 10 個 case 同時失敗 → 10 個 fsdb2vcd 搶 license</td>
+        <td><span class="tag tag-risk">授權瓶頸</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="card-grid">
+
+    <div class="card">
+      <h3>🧩 2.1 時間/Scope 切片實戰</h3>
+      <div class="time">⏱ 30 min</div>
+      <p>拿一個大 FSDB 實測時間 + scope 切片，紀錄 VCD 體積壓縮率。</p>
+      <div class="cmd"><span class="comment"># 先看原始大小</span>
+ls -lh top.fsdb
+
+<span class="comment"># 全轉 vs 切片轉</span>
+./tools/fsdb2vcd.sh top.fsdb full.vcd
+./tools/fsdb2vcd.sh top.fsdb \
+  --bt 50000 --et 51000 \
+  --scope tb.dut.phy_ud -o sliced.vcd
+
+<span class="comment"># 比較</span>
+ls -lh full.vcd sliced.vcd
+<span class="comment"># 預期：full 800MB, sliced 5MB → 160x 壓縮</span></div>
+      <p><span class="tag tag-risk">VCD Blow-up</span> <span class="tag tag-demo">PPT Slice 素材</span></p>
+      <ul class="chk-list">
+        <li>記錄壓縮倍率（full/sliced）</li>
+        <li class="pending">截圖 ls -lh 輸出 → 放 PPT</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🧩 2.2 無 Golden 情境 debug</h3>
+      <div class="time">⏱ 30 min</div>
+      <p>沒有 C-model golden 時，只用 vcs.log + VCD 定位問題。</p>
+      <div class="cmd"><span class="comment"># 1. 從 log 抓第一個 error 時間</span>
+grep -n "UVM_ERROR\|UVM_FATAL" vcs.log | head -5
+
+<span class="comment"># 2. 看該時間附近的訊號</span>
+python3 tools/vcd.py value your.vcd tb.dut.result 5200
+python3 tools/vcd.py changes your.vcd tb.dut.ctrl 5100 5300
+
+<span class="comment"># 3. 對照 RTL source 推斷成因</span></div>
+      <p><span class="tag tag-flow">Loop B debug</span></p>
+      <ul class="chk-list">
+        <li>成功從 log + VCD 定位到嫌疑訊號</li>
+        <li class="pending">記錄「log error time → VCD value → RTL 比對」的 SOP</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🧩 2.3 C-model Adapter 調整</h3>
+      <div class="time">⏱ 20 min</div>
+      <p>如果你的 golden hex 格式不被 auto-detect → 改 adapter。</p>
+      <div class="cmd"><span class="comment"># 看 cmodel_hex.py 的 adapter 標記區塊</span>
+grep -n "IF AUTO-DETECT IS WRONG" tools/cmodel_hex.py
+
+<span class="comment"># 跑看看你的 hex</span>
+python3 tools/cmodel_hex.py your.hex | head -5</div>
+      <p><span class="tag tag-risk">格式不一致</span> <span class="tag tag-tool">cmodel_hex.py</span></p>
+      <ul class="chk-list">
+        <li>若 auto-detect 失敗 → 修改 adapter</li>
+        <li class="pending">記錄你改了什麼 → 下次回歸用</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🧩 2.4 LLM Agent 幻覺測試</h3>
+      <div class="time">⏱ 30 min</div>
+      <p>故意給 LLM 一個不存在的訊號名或錯的時間，看它會不會幻覺。</p>
+      <div class="cmd"><span class="comment"># 測試 1：問不存在的訊號</span>
+python3 tools/vcd.py value your.vcd nosuchsignal 1000
+<span class="comment"># 預期：ERROR: signal not found → rc 2</span>
+
+<span class="comment"># 測試 2：問不存在的時間</span>
+python3 tools/vcd.py value your.vcd tb.clk -1
+<span class="comment"># 預期：not_found</span></div>
+      <p><span class="tag tag-risk">幻覺管控</span> <span class="tag tag-demo">PPT 素材</span></p>
+      <ul class="chk-list">
+        <li>確認 vcd.py 報錯時不會倒 traceback</li>
+        <li class="pending">確認 compare.py 報錯時 rc ≠ 0</li>
+      </ul>
+    </div>
+
+    <div class="card" style="border:2px solid var(--blue);">
+      <h3>🧩 2.6 Agent Debug Playbook 完整演練</h3>
+      <div class="time">⏱ 60 min</div>
+      <p>用一個真實/模擬的 failing case，完整跑一遍 Debug Playbook 定義的 8 步 SOP → 產出第一份正式報告。</p>
+      <div style="font-size:.82em;margin:8px 0;padding-left:8px;border-left:3px solid var(--blue);">
+        <strong>8 步 SOP</strong><br>
+        S0: 環境確認 → S1: grep log 找 error → S2: FSDB→VCD 切片<br>
+        S3: vcd.py list scope → S4: value 查 T 附近值<br>
+        S5: compare.py 找分歧 → S6: cmodel_hex.py 驗證格式<br>
+        S7: wavejson 產時序圖 → S8: 綜合判斷 + 三大方向
+      </div>
+      <p><span class="tag tag-tool">DEBUG_PLAYBOOK.md</span> <span class="tag tag-demo">Day 2 核心</span></p>
+      <ul class="chk-list">
+        <li>8 步全部跑完無卡關</li>
+        <li class="pending">產出 YAML 格式正式報告（三大方向 + 概率）</li>
+        <li class="pending">概率總和 = 100%</li>
+      </ul>
+    </div>
+
+    <div class="card" style="border:2px solid var(--blue);">
+      <h3>🧩 2.7 TXCMP/RXCMP Checker 驗證</h3>
+      <div class="time">⏱ 30 min</div>
+      <p>執行「Checker 四問驗證法」，確保 checker 的觸發時機、比對值、compare window 都正確。</p>
+      <div style="font-size:.82em;margin:8px 0;padding-left:8px;border-left:3px solid var(--blue);">
+        <strong>四問</strong><br>
+        Q1: Trigger 時機對嗎？ → <code>vcd.py changes ... enable</code><br>
+        Q2: Expected 值對嗎？ → <code>vcd.py value ... exp_data</code><br>
+        Q3: Actual 值對嗎？ → <code>vcd.py value ... act_data</code><br>
+        Q4: Compare window 對嗎？ → <code>vcd.py changes ... compare_window</code>
+      </div>
+      <p><span class="tag tag-flow">ERROR FINGERPRINT</span> <span class="tag tag-tool">DEBUG_PLAYBOOK.md §4</span></p>
+      <ul class="chk-list">
+        <li>四問皆回答，紀錄結果</li>
+        <li class="pending">判斷 checker bug pattern（latency mismatch / stale data / off-by-one）</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🧩 2.5 跨機器環境測試</h3>
+      <div class="time">⏱ 20 min</div>
+      <p>在另一台機器（或 container）上重跑 _selftest.sh，看環境差異。</p>
+      <div class="cmd"><span class="comment"># 在新機器上</span>
+sh tools/_selftest.sh
+<span class="comment"># 預期：ALL PASS（純 stdlib 優勢）</span>
+
+<span class="comment"># 如果 VERDI 路徑不同</span>
+module load synopsys/verdi/v2023.09
+which fsdb2vcd</div>
+      <p><span class="tag tag-risk">環境一致性</span></p>
+      <ul class="chk-list">
+        <li>確認 pure Python 工具跨機器可執行</li>
+        <li class="pending">記錄 Verdi PATH 設定方式</li>
+      </ul>
+    </div>
+
+    <div class="card" style="border:2px solid var(--blue);">
+      <h3>🧩 2.8 Verdi KDB 查 Design 結構</h3>
+      <div class="time">⏱ 25 min</div>
+      <p>用 Verdi KDB 命令列查 Design Hierarchy、FSM 編碼、Signal Driver。</p>
+      <div class="cmd"><span class="comment"># KDB 查詢（命令列，無需開 GUI）</span>
+verdi -kdb -dir simv.daidir/kdb.elab++ -c -batch "list_module"
+verdi -kdb -dir simv.daidir/kdb.elab++ -c -batch "get_ports tb.dut.phy_ud"
+verdi -kdb -dir simv.daidir/kdb.elab++ -c -batch "fsm_list tb.dut.ctrl"
+
+<span class="comment"># fsdb2vcd -l 亦可快速看 scope 結構</span>
+fsdb2vcd -l top.fsdb | head -40</div>
+      <p><span class="tag tag-tool">Verdi KDB</span> <span class="tag tag-tool">nTrace</span> <span class="tag tag-tool">VERDI_VCS_TOOLS.md</span></p>
+      <ul class="chk-list">
+        <li>成功 trace signal driver（get_drivers）</li>
+        <li class="pending">成功查詢 FSM state encoding</li>
+      </ul>
+    </div>
+
+    <div class="card" style="border:2px solid var(--blue);">
+      <h3>🧩 2.9 錯誤指紋識別練習</h3>
+      <div class="time">⏱ 20 min</div>
+      <p>對照 DEBUG_PLAYBOOK.md 的指紋速查表，幫你的 failing case 分類。</p>
+      <div style="font-size:.78em;margin:8px 0;">
+        <table class="fp-table">
+          <tr><th>觀察現象</th><th>優先</th><th>次級</th></tr>
+          <tr><td>compare divergence = constant offset</td><td><span class="tag-a">A RTL</span></td><td><span class="tag-c">C config</span></td></tr>
+          <tr><td>exp/act 波形一致但差 N cycle</td><td><span class="tag-b">B checker</span></td><td><span class="tag-a">A pipeline</span></td></tr>
+          <tr><td>±1 LSB 誤差</td><td><span class="tag-d">D fixed-pt</span></td><td><span class="tag-a">A</span></td></tr>
+          <tr><td>跨多個 checker 同時 fail</td><td><span class="tag-d">D C++</span></td><td><span class="tag-c">C config</span></td></tr>
+          <tr><td>FSM 進入非法狀態</td><td><span class="tag-a">A RTL</span></td><td>—</td></tr>
+        </table>
+      </div>
+      <p><span class="tag tag-tool">DEBUG_PLAYBOOK.md §3</span> <span class="tag tag-flow">fingerprint</span></p>
+      <ul class="chk-list">
+        <li>你的 failing case 對到至少一個指紋 pattern</li>
+        <li class="pending">紀錄指紋與優先懷疑方向是否吻合</li>
+      </ul>
+    </div>
+
+    <div class="card" style="border:2px solid var(--accent);">
+      <h3>🎯 Day 2 驗收</h3>
+      <p>你已驗證了 pipeline 的 <strong>邊界條件</strong>，知道它在什麼情況下會出什麼問題、怎麼解。</p>
+      <div style="margin:12px 0;">
+        <div class="path-row">
+          <span class="path-step exp">Day 1 實驗</span>
+          <span class="path-arrow">→</span>
+          <span class="path-step extend">大 VCD → time slice</span>
+          <span class="path-arrow">→</span>
+          <span class="path-step solve">VCD Blow-up 解法</span>
+          <span class="path-arrow">→</span>
+          <span class="path-step demo">PPT 素材</span>
+        </div>
+      </div>
+      <p style="font-size:.88em;color:#666;">Day 2 結束時，你手上應該有：<br>
+      ✅ VCD 壓縮率截圖（160x 差距）<br>
+      ✅ 至少一個「無 golden」情境的 debug 紀錄<br>
+      ✅ 知道幻覺管控的防線長怎樣</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- DAY 3 -->
+<!-- ============================================================ -->
+<div class="day-section" id="day3">
+
+  <div class="section-title"><span class="emoji">🎬</span> Day 3 — 結論 + 6 頁 Demo PPT <span style="font-size:.55em;font-weight:400;opacity:.6;margin-left:8px;">預估 4h · 寫 PPT + 演練</span></div>
+  <p style="margin-bottom:16px;color:#666;font-size:.92em;">
+    目標：把 Day 1–2 的實驗結果、情境延伸、對應解法 <strong>提煉成 6 頁 PPT</strong>，
+    讓聽眾（主管 / 同事）一目瞭然：這套 pipeline 能幫我們做什麼、不能做什麼、怎麼導入。
+  </p>
+
+  <!-- ============== 6 PPT PAGES ============== -->
+  <div class="section-title" id="ppt"><span class="emoji">📽️</span> 6 頁 Demo PPT 腳本</div>
+
+  <div class="ppt-grid">
+
+    <div class="ppt-card">
+      <span class="page-num">P1 / 6</span>
+      <h3>🎬 開場：RTL 設計 debug 的痛點</h3>
+      <p>
+        Designer 每天花 30–60% 時間在低價值環節——
+        盯波形找 off-by-one、追 vcs.log、畫時序圖。
+      </p>
+      <div class="bullet">
+        <strong>Demo 內容：</strong><br>
+        • 一張「Debud 時間分配」圓餅圖<br>
+        • 一句話：<em>「如果機器幫我做這些，我可以專心做微架構。」</em>
+      </div>
+    </div>
+
+    <div class="ppt-card accent">
+      <span class="page-num">P2 / 6</span>
+      <h3>🔧 我們做了什麼：工具鏈總覽</h3>
+      <p>
+        四支純 Python 確定性工具 + 一條路徑從 FSDB 到 WaveJSON 到根因分析。
+      </p>
+      <div class="bullet">
+        <strong>Live Demo：</strong><br>
+        ① fsdb2vcd（時間+scope 切片）<br>
+        ② vcd.py list/value/changes/wavejson<br>
+        ③ compare.py 找第一個分歧<br>
+        ④ render_wavedrom.sh 產時序圖
+      </div>
+    </div>
+
+    <div class="ppt-card blue">
+      <span class="page-num">P3 / 6</span>
+      <h3>📊 實際 Demo：FSDB → 分歧點</h3>
+      <p>
+        從 1GB FSDB 出發，用 time+scope 切片轉出 5MB VCD，
+        compare.py 在 3 秒內找到第一個分歧 cycle。
+      </p>
+      <div class="bullet">
+        <strong>截圖必備：</strong><br>
+        • ls -lh：full 800MB vs sliced 5MB（160x 壓縮）<br>
+        • compare.py JSON 輸出（index + clk_time + golden vs actual）<br>
+        • wave.svg 時序圖（分歧點紅框標記）
+      </div>
+    </div>
+
+    <div class="ppt-card gold">
+      <span class="page-num">P4 / 6</span>
+      <h3>⚠️ 四種錯誤來源 + 大規模 5 道牆</h3>
+      <p>
+        Debug 不是盲目搜尋——Agent 根據錯誤「指紋」判斷最可能的來源。
+      </p>
+      <div class="bullet">
+        <strong>錯誤來源與概率：</strong><br>
+        🟠 B: Checker 30-45% ｜ 🔴 A: RTL 25-35%<br>
+        🔵 C: Config 10-20% ｜ 🟣 D: C++ 5-15%<br>
+        <strong>大規模部署 5 道牆：</strong><br>
+        ① <strong>VCD 肥大</strong> → time+scope slice<br>
+        ② <strong>授權瓶頸</strong> → VCS native VCD + queue<br>
+        ③ <strong>LLM 幻覺</strong> → 確定性工具 + 信心標籤<br>
+        ④ <strong>團隊不信</strong> → 先從有 golden 的確定性案例建立信任
+      </div>
+    </div>
+
+    <div class="ppt-card green">
+      <span class="page-num">P5 / 6</span>
+      <h3>🛡️ 抗幻覺架構：敢不敢讓它自動化？</h3>
+      <p>
+        LLM 不可信賴 → 架構性設計讓它</strong>沒機會幻覺</strong>。
+      </p>
+      <div class="bullet">
+        <strong>三層防線：</strong><br>
+        ① 確定性工具決定「值是什麼」（不可挑戰）<br>
+        ② LLM 只做「解釋為什麼」（可挑戰）<br>
+        ③ 信心標籤 [DATA-SUPPORTED / INFERRED / SPECULATIVE]<br><br>
+        <strong>Demo：</strong>故意給錯訊號名，看工具報 ERROR vs LLM 幻覺
+      </div>
+    </div>
+
+    <div class="ppt-card" style="background: linear-gradient(135deg,#1a1a2e,#0f3460); border: 2px solid var(--gold);">
+      <span class="page-num">P6 / 6</span>
+      <h3>🏁 Debug Playbook：導入路線圖</h3>
+      <p>
+        Agent 不是取代 DD，而是擔任 debug guide——給出三大方向+概率，由 owner 做最終判斷。
+      </p>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-top:8px;font-size:.76em;">
+        <div style="background:rgba(255,255,255,.1);padding:5px 10px;border-radius:6px;border-left:3px solid #3498db;">
+          <strong>Phase 1</strong> → Golden Compare（確定性工具）<br>
+          <span style="opacity:.6;">checker C: Config diff 自動化</span>
+        </div>
+        <div style="background:rgba(255,255,255,.1);padding:5px 10px;border-radius:6px;border-left:3px solid #2ecc71;">
+          <strong>Phase 2</strong> → Debug Playbook（8 步 SOP）<br>
+          <span style="opacity:.6;">checker B: Checker Timing 四問驗證法</span>
+        </div>
+        <div style="background:rgba(255,255,255,.1);padding:5px 10px;border-radius:6px;border-left:3px solid #f39c12;">
+          <strong>Phase 3</strong> → 三大方向+概率報告<br>
+          <span style="opacity:.6;">checker A+D: RTL vs Spec + C++ review</span>
+        </div>
+        <div style="background:rgba(255,255,255,.1);padding:5px 10px;border-radius:6px;border-left:3px solid #e94560;">
+          <strong>Phase 4</strong> → Nightly Integration（全自動）<br>
+          <span style="opacity:.6;">debug cycle 縮短 50%+</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============== PPT MAKING CHECKLIST ============== -->
+  <div class="section-title"><span class="emoji">📋</span> PPT 製作檢查表</div>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>📸 截圖素材</h3>
+      <p>需要先準備的螢幕截圖：</p>
+      <ul class="chk-list">
+        <li>_selftest.sh ALL PASS 輸出</li>
+        <li class="pending">ls -lh 比較 full VCD vs sliced VCD（160x）</li>
+        <li class="pending">compare.py JSON 分歧點輸出</li>
+        <li class="pending">wave.svg 時序圖（分歧點標記）</li>
+        <li class="pending">vcd.py list 訊號列表</li>
+        <li class="pending">vcd.py value 查詢輸出</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🎬 Demo 流程（6 min）</h3>
+      <p>現場展示的順序：</p>
+      <ol style="font-size:.88em;padding-left:18px;">
+        <li><strong>0:00–0:30</strong> 痛點開場（1 張投影片）</li>
+        <li><strong>0:30–1:30</strong> 工具鏈總覽 + 指令展示</li>
+        <li><strong>1:30–3:00</strong> Live: FSDB → time slice → compare</li>
+        <li><strong>3:00–4:00</strong> 大規模牆 + 解法（每道 12 秒）</li>
+        <li><strong>4:00–4:45</strong> 抗幻覺架構 demo</li>
+        <li><strong>4:45–6:00</strong> 路線圖 + QA</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>🔧 Verdi KDB / nWave — Agent 的電子顯微鏡</h3>
+      <div class="time">⏱ 參閱 VERDI_VCS_TOOLS.md</div>
+      <p>工網內有 Verdi+VCS license。以下工具可被 Agent 命令列呼叫、產出結構化文字，讓 Agent 理解 RTL 結構：</p>
+      <div style="font-size:.82em;">
+        <table class="fp-table">
+          <tr><th>工具</th><th>命令列語法</th><th>給 Agent 的價值</th></tr>
+          <tr><td><strong>Verdi KDB</strong></td><td><code>verdi -kdb -dir ... -c -batch "get_drivers signal"</code></td><td>⭕ 訊號溯源（誰驅動這個 signal？）</td></tr>
+          <tr><td><strong>Verdi KDB</strong></td><td><code>verdi -kdb ... -c -batch "fsm_list module"</code></td><td>⭕ FSM state encoding + 轉換表</td></tr>
+          <tr><td><strong>fsdb2vcd -l</strong></td><td><code>fsdb2vcd -l top.fsdb</code></td><td>⭕ 快速看 FSDB 的 scope hierarchy</td></tr>
+          <tr><td><strong>nWave Tcl</strong></td><td><code>get_signal_value -time 1525</code></td><td>⭕ 大 FSDB 直接查值（不用先轉 VCD）</td></tr>
+          <tr><td><strong>VCS +vcd+file</strong></td><td><code>./simv +vcd+file=dump.vcd</code></td><td>⭕ 零授權成本產 VCD</td></tr>
+        </table>
+      </div>
+      <p style="margin-top:8px;font-size:.82em;color:#666;">
+        Agent 參考 <code>VERDI_VCS_TOOLS.md</code> 來挑選適合的工具。
+      </p>
+    </div>
+    <div class="card">
+      <h3>⚠️ 事先準備（Day 3 早上）</h3>
+      <ul class="chk-list">
+        <li>Terminal 視窗切好，指令先打好在 buffer</li>
+        <li class="pending">準備 1 個小 FSDB（< 100MB）做 live demo</li>
+        <li class="pending">準備 1 個已知 bug 的 case（compare 輸出很漂亮）</li>
+        <li class="pending">吹風機測試：故意打錯指令，看工具報錯（顯抗幻覺）</li>
+        <li class="pending">投射螢幕解析度確認（PPT + terminal 切換順暢）</li>
+      </ul>
+      <p style="margin-top:8px;padding:8px 12px;background:#fff3e0;border-radius:6px;font-size:.82em;">
+        <strong>💡 關鍵原則：</strong>Demo 時先展示工具（確定性），再展示 LLM 解釋（推測性）。
+        主管最怕「AI 亂講」，先建立工具的可信度。
+      </p>
+    </div>
+  </div>
+
+  <!-- ============== SCENARIO MAP ============== -->
+  <div class="section-title"><span class="emoji">🗺️</span> 完整路徑地圖：實驗 → 情境 → 解法 → PPT</div>
+
+  <div style="background:#fff;border-radius:12px;padding:24px;border:1px solid #eee;margin-bottom:24px;">
+    <p style="margin-bottom:16px;font-size:.95em;">
+      這張表讓你看清：每個簡單實驗（左）如何延伸為挑戰情境（中），對應的解法在哪（右），最終變成 PPT 哪一頁。
+    </p>
+    <table class="cmp-table">
+      <thead><tr><th>🧪 簡單實驗 (Day 1)</th><th>🧩 延伸挑戰 (Day 2)</th><th>🛠️ 解法</th><th>📽️ PPT 頁</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>fsdb2vcd 轉小 FSDB</td>
+          <td>1GB FSDB → 8GB VCD<br>打不開、存不下</td>
+          <td><code>--bt --et --scope</code><br>兩層切片策略</td>
+          <td>P3 (實際 Demo)<br>P4 (5 道牆)</td>
+        </tr>
+        <tr>
+          <td>vcd.py value 查短名</td>
+          <td>vcd.py 報 ambiguous<br>5 個同名 clk</td>
+          <td>Canonical full path<br>先 list --match</td>
+          <td>P4<br>P5 (抗幻覺)</td>
+        </tr>
+        <tr>
+          <td>compare.py 有 golden</td>
+          <td>沒有 golden<br>只有 log + VCD</td>
+          <td>grep log → vcd.py<br>手動查上游</td>
+          <td>P2 (工具鏈)<br>P3</td>
+        </tr>
+        <tr>
+          <td>compare.py match</td>
+          <td>Golden 格式不同<br>adapter 抓不到</td>
+          <td>改 cmodel_hex.py<br>或推統一格式</td>
+          <td>P4</td>
+        </tr>
+        <tr>
+          <td>手動驗證 LLM 結論</td>
+          <td>LLM 捏造訊號名<br>時間值不對</td>
+          <td>Tool-query pattern<br>信心分數</td>
+          <td>P5 (抗幻覺重點)</td>
+        </tr>
+        <tr>
+          <td>一次轉一個 FSDB</td>
+          <td>10 個並行 fsdb2vcd<br>搶 Verdi license</td>
+          <td>VCS native VCD<br>Queue + cache</td>
+          <td>P4</td>
+        </tr>
+        <tr>
+          <td>自機跑 _selftest</td>
+          <td>換機器就 PATH 不同<br>Python 版本不同</td>
+          <td>Container + module<br>Pure stdlib</td>
+          <td>P4</td>
+        </tr>
+        <tr>
+          <td>工程師自己驗證</td>
+          <td>團隊不信任 AI</td>
+          <td>從 golden cases 建立信任<br>LLM 只解釋不修 RTL</td>
+          <td>P6 (路線圖)</td>
+        </tr>
+        <tr>
+          <td>vcd.py value 查 value</td>
+          <td>想知道 signal 從哪來<br>（跨 module 連線）</td>
+          <td><strong>Verdi KDB</strong> get_drivers</td>
+          <td>P2 (Verdi 工具)</td>
+        </tr>
+        <tr>
+          <td>vcd.py changes 看 FSM</td>
+          <td>FSM 進入非法狀態<br>想知道 state encoding</td>
+          <td><strong>Verdi KDB</strong> fsm_list</td>
+          <td>P2 / P5</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card" style="border:2px solid var(--gold);text-align:center;">
+    <h3 style="justify-content:center;">🎯 Day 3 驗收 — 你準備好了</h3>
+    <p style="margin:8px 0;">
+      6 頁 PPT + 6 分鐘 Demo，完整呈現從工具鏈到部署的全貌。
+    </p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px;">
+      <span style="background:#e8f5e9;padding:6px 14px;border-radius:20px;font-size:.82em;">✅ 工具鏈跑得動</span>
+      <span style="background:#e8f5e9;padding:6px 14px;border-radius:20px;font-size:.82em;">✅ VCD 壓縮 160x</span>
+      <span style="background:#e8f5e9;padding:6px 14px;border-radius:20px;font-size:.82em;">✅ compare 分歧點</span>
+      <span style="background:#e8f5e9;padding:6px 14px;border-radius:20px;font-size:.82em;">✅ WaveJSON SVG</span>
+      <span style="background:#e8f5e9;padding:6px 14px;border-radius:20px;font-size:.82em;">✅ 知道 5 道牆 + 解法</span>
+      <span style="background:#e8f5e9;padding:6px 14px;border-radius:20px;font-size:.82em;">✅ 抗幻覺架構</span>
+      <span style="background:#e8f5e9;padding:6px 14px;border-radius:20px;font-size:.82em;">✅ 4 階段路線圖</span>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <p>RTL Waveform Debug Pipeline · <a href="DEPLOYMENT_GUIDE.md" style="color:var(--accent);">部署指南</a> · <a href="README.md" style="color:var(--accent);">README</a></p>
+    <p style="margin-top:4px;">在瀏覽器打開本檔案即可互動點選 Day 1/2/3</p>
+  </div>
+</footer>
+
+<script>
+function showDay(n) {
+  document.querySelectorAll('.day-section').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.day-pill').forEach(el => el.classList.remove('active'));
+  document.getElementById('day'+n).classList.add('active');
+  document.querySelectorAll('.day-pill')[n-1].classList.add('active');
+}
+// hash navigation
+if (window.location.hash === '#day2') showDay(2);
+if (window.location.hash === '#day3') showDay(3);
+</script>
+</body>
+</html>

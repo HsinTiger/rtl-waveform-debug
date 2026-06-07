@@ -38,7 +38,18 @@ which fsdb2vcd
 
 ```tcsh
 cd <你的 sim 目錄>
+
+# 方式 A：整檔轉（設計小、時間短時用）
 sh $RTLDBG/tools/fsdb2vcd.sh your.fsdb your.vcd
+
+# 方式 B：時間切片轉（只轉你需要看的那段時間）← 大檔案建議用這個
+sh $RTLDBG/tools/fsdb2vcd.sh your.fsdb --bt 1500 --et 2500 -o your.vcd
+
+# 方式 C：時間 + Scope 切片（只轉特定模組的特定時間）← 大設計最省 VCD 體積
+# 先用 fsdb2vcd -l your.fsdb 看 scope 層級結構
+fsdb2vcd -l your.fsdb | head -50
+# 再轉
+sh $RTLDBG/tools/fsdb2vcd.sh your.fsdb --bt 2850 --et 3150 --scope tb.dut.phy_ud -o your.vcd
 ```
 
 > 小檔案整顆轉沒問題。若訊號很多，只轉你要看的 scope（`fsdb2vcd -h` 看篩選選項），避免 VCD 過大。

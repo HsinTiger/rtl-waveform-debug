@@ -133,6 +133,7 @@ agent 依 `SKILL.md`：grep log → `vcd.py list` 驗證訊號 → `compare.py .
 - [ ] tool-call parser 正常：agent 真的會呼叫 `vcd.py`/`compare.py` 而非自己編值。
 - [ ] （要產圖才需）wavedrom-cli tarball 已 vendoring、`render_wavedrom.sh` 可離線跑。
 - [ ] （來源是 FSDB 才需）`which fsdb2vcd` 找得到、`fsdb2vcd.sh` 可轉。
+- [ ] （時間切片）`fsdb2vcd.sh <fsdb> --bt <N> --et <M> -o slice.vcd` 時間切片正常（先 `fsdb2vcd -l <fsdb>` 確認 timescale）。
 - [ ] 確認 agent 在「訊號查無」時會回報錯誤、不幻覺（拿一個錯訊號名測它）。
 
 ---
