@@ -1,0 +1,13 @@
+# Shell scripts must keep LF line endings so the #!/bin/sh shebang works on the
+# air-gapped Linux 工網. Without this, a Windows checkout can rewrite them to
+# CRLF and the scripts fail to run.
+*.sh text eol=lf
+
+# Other text we author cross-platform — normalize to LF in the repo.
+*.py text eol=lf
+*.md text eol=lf
+
+# The deployment tarball is binary — never touch its bytes.
+*.tar.gz binary
+*.vcd binary
+*.fsdb binary

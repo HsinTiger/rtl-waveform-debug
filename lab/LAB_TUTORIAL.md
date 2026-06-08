@@ -11,7 +11,7 @@
 
 - [Step 0: 環境確認](#step-0-環境確認)
 - [Step 1: grep vcs.log 找第一個 Error](#step-1-grep-vcslog-找第一個-error)
-- [Step 2: FSDB → VCD 時間切片](#step-2-fsdb--vcd-時間切片)
+- [Step 2: FSDB 時間切片 → VCD 轉檔](#step-2-fsdb-時間切片--vcd-轉檔)
 - [Step 3: vcd.py 清點訊號](#step-3-vcdpy-清點訊號)
 - [Step 4: vcd.py 查值 — 錯誤時間點附近](#step-4-vcdpy-查值--錯誤時間點附近)
 - [Step 5: compare.py — 找 RTL vs Golden 分歧點](#step-5-comparepy--找-rtl-vs-golden-分歧點)
@@ -96,21 +96,24 @@ grep -n -i "ASSERT\|FAIL\|MISMATCH" /proj/lab/sim/vcs.log | head -10
 
 ---
 
-## Step 2: FSDB → VCD 時間切片
+## Step 2: FSDB 時間切片 → VCD 轉檔
 
-**目標：** 在錯誤時間 `T` 前後各取 100ns 做時間切片，減少 VCD 體積。
+**目標：** 在錯誤時間 `T` 前後各取 100ns 做時間切片，減少 VCD 體積。切片要分兩段：先在 FSDB 域用 `fsdbextract` 切（資料仍是壓縮的），再把小 slice 用 `fsdb2vcd` 轉成 VCD（轉檔階段不帶任何切片參數）。
 
 ```bash
-# 2.1 如果來源是 FSDB，先切成 VCD
-set T=30   # ← 從 Step 1 取得的時間（ns）
+# 2.1 如果來源是 FSDB，先在 FSDB 域用 fsdbextract 做時間 + Scope 切片
+#     -bt/-et 時間「必須帶單位」（ns），-s scope 用斜線分隔，-level 0 = scope 及其以下全部
+set T=30        # ← 從 Step 1 取得的時間（ns）
 set BT=`expr $T - 100`
 set ET=`expr $T + 100`
 
-# 2.2 時間 + Scope 切片
-sh $RTLDBG/tools/fsdb2vcd.sh /proj/lab/top.fsdb \
-  --bt $BT --et $ET \
-  --scope tb.dut \
-  -o /tmp/debug.vcd
+sh $RTLDBG/tools/fsdbextract.sh /proj/lab/top.fsdb \
+  -bt ${BT}ns -et ${ET}ns \
+  -s /tb/dut -level 0 \
+  -o /tmp/slice.fsdb +grid
+
+# 2.2 把切好的小 slice 轉成 VCD（fsdb2vcd 不帶任何切片參數）
+sh $RTLDBG/tools/fsdb2vcd.sh /tmp/slice.fsdb -o /tmp/debug.vcd
 
 # 2.3 如果已有 VCD（如 $dumpvars 產生的），直接複製
 cp /proj/lab/sim/dump_buggy.vcd /tmp/debug.vcd

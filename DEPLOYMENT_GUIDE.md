@@ -43,26 +43,33 @@ FSDB 是 Synopsys Verdi 的二進位私有格式，已包含 signal-level 壓縮
 
 **① Time window slicing（最重要的單一優化）**
 
-大部分 bug 的 root cause 在 failure time 前後 1μs 內。在 fsdb2vcd 階段就指定時間範圍：
+大部分 bug 的 root cause 在 failure time 前後 1μs 內。先用 fsdbextract 在 FSDB 域切片，再 fsdb2vcd 轉檔——切片發生在 FSDB 域（資料維持壓縮），fsdb2vcd 只負責轉換不做切片：
 
 ```bash
+# Stage 1：fsdbextract 在 FSDB 域切出 1μs（FSDB→FSDB，資料仍壓縮）
+sh $RTLDBG/tools/fsdbextract.sh top.fsdb -bt 100ns -et 200ns -s /tb/dut -level 0 -o slice.fsdb +grid
+
+# Stage 2：fsdb2vcd 轉小檔（不帶任何切片旗標）
+sh $RTLDBG/tools/fsdb2vcd.sh slice.fsdb -o slice.vcd
 # 100μs simulation 只截 1μs → VCD 大小直接砍 99%
-fsdb2vcd top.fsdb -o slice.vcd -bt 50000 -et 51000
 ```
 
 **② Scope filtering**
 
-只轉跟 failure 有關的 hierarchy scope：
+只切跟 failure 有關的 hierarchy scope——同樣在 fsdbextract（FSDB 域）做，scope 用 slash 表示：
 
 ```bash
-fsdb2vcd top.fsdb -o slice.vcd -s tb.dut.phy_ud -s tb.dut.scoreboard
+# scope 切片在 FSDB 域完成（slash 形式 /tb/dut/...，-level 0 = scope 及其下所有）
+sh $RTLDBG/tools/fsdbextract.sh top.fsdb -s /tb/dut/phy_ud -level 0 -o slice.fsdb +grid
+sh $RTLDBG/tools/fsdb2vcd.sh slice.fsdb -o slice.vcd
 ```
 
 **③ 兩層切片策略**
 
 ```bash
-# 第一層：fsdb2vcd 粗切（裁掉 99% 的無關時間）
-fsdb2vcd top.fsdb -o coarse.vcd -bt 50000 -et 52000 -s tb.dut
+# 第一層：fsdbextract 在 FSDB 域粗切（FSDB→FSDB，裁掉 99% 的無關時間後再轉檔）
+sh $RTLDBG/tools/fsdbextract.sh top.fsdb -bt 100ns -et 102ns -s /tb/dut -level 0 -o coarse.fsdb +grid
+sh $RTLDBG/tools/fsdb2vcd.sh coarse.fsdb -o coarse.vcd
 
 # 第二層：vcd.py/compare.py 細切（同一個 VCD 上快速切子視窗）
 vcd.py wavejson coarse.vcd --t0 50500 --t1 51000 > win1.json
@@ -193,7 +200,9 @@ CACHE_KEY="${FSDB_HASH}_${SCOPE}_${BT}_${ET}"
 if [ -f "/cache/vcd/${CACHE_KEY}.vcd" ]; then
   cp "/cache/vcd/${CACHE_KEY}.vcd" output.vcd
 else
-  fsdb2vcd input.fsdb -o /tmp/$$.vcd ...
+  # 切片在 FSDB 域（fsdbextract），再轉小檔（fsdb2vcd 不做切片）
+  sh $RTLDBG/tools/fsdbextract.sh input.fsdb -bt ${BT}ns -et ${ET}ns -s ${SCOPE} -level 0 -o /tmp/$$.fsdb +grid
+  sh $RTLDBG/tools/fsdb2vcd.sh /tmp/$$.fsdb -o /tmp/$$.vcd
   cp /tmp/$$.vcd "/cache/vcd/${CACHE_KEY}.vcd"
   cp /tmp/$$.vcd output.vcd
 fi

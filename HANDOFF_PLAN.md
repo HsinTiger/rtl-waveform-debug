@@ -32,6 +32,7 @@ fsdb-deepseek-debug/
 │   ├── vcd.py                     # VCD 解析/查詢/轉 WaveJSON  ✅ 已測
 │   ├── cmodel_hex.py              # C phyUD hex 載入器（含格式 adapter）✅ 已測
 │   ├── compare.py                 # RTL vs golden 第一個分歧  ✅ 已測
+│   ├── fsdbextract.sh             # Verdi FSDB→FSDB 切片器（先切再轉）
 │   ├── fsdb2vcd.sh                # Verdi FSDB→VCD 包裝
 │   └── render_wavedrom.sh         # WaveJSON→SVG 包裝（npx wavedrom-cli）
 └── examples/
@@ -133,7 +134,7 @@ agent 依 `SKILL.md`：grep log → `vcd.py list` 驗證訊號 → `compare.py .
 - [ ] tool-call parser 正常：agent 真的會呼叫 `vcd.py`/`compare.py` 而非自己編值。
 - [ ] （要產圖才需）wavedrom-cli tarball 已 vendoring、`render_wavedrom.sh` 可離線跑。
 - [ ] （來源是 FSDB 才需）`which fsdb2vcd` 找得到、`fsdb2vcd.sh` 可轉。
-- [ ] （時間切片）`fsdb2vcd.sh <fsdb> --bt <N> --et <M> -o slice.vcd` 時間切片正常（先 `fsdb2vcd -l <fsdb>` 確認 timescale）。
+- [ ] （時間切片）先在 FSDB 域用 `fsdbextract.sh <fsdb> -bt 100ns -et 200ns -s /tb/dut -level 0 -o slice.fsdb +grid` 切出 `slice.fsdb`（時間需帶單位 ns、scope 用斜線），再 `fsdb2vcd.sh slice.fsdb -o slice.vcd` 轉檔正常（先 `fsdb2vcd -l <fsdb>` 確認 timescale）。
 - [ ] 確認 agent 在「訊號查無」時會回報錯誤、不幻覺（拿一個錯訊號名測它）。
 
 ---

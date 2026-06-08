@@ -253,9 +253,40 @@ fsdb2vcd -l top.fsdb
 ```
 
 Agent 可以用這個來：
-1. 在 `fsdb2vcd` 的 `--scope` 參數中填入正確的 scope path（避免拼錯）
-2. 快速決定哪些 scope 要包含在 time slice 中
+1. 在 `fsdbextract` 的 `-s` 參數中填入正確的 scope path（slash 形式，如 `/tb/dut`，避免拼錯）
+2. 快速決定哪些 scope 要包含在 time/scope slice 中（slicing 用 `fsdbextract`，見下方第 7 節）
 3. 比對 vcs.log 中的訊號名是否與 FSDB 中的 scope path 一致
+
+---
+
+## 7. fsdbextract — FSDB 域切片（time / scope slicing）
+
+> **重點：** `fsdb2vcd` 不做切片。切片要先用獨立工具 **fsdbextract**（FSDB→FSDB，資料維持壓縮），再把小檔轉成 VCD。
+
+```bash
+# Stage 1：在 FSDB 域切片（time + scope），資料不解壓
+sh $RTLDBG/tools/fsdbextract.sh top.fsdb -bt 100ns -et 200ns -s /tb/dut -level 0 -o slice.fsdb +grid
+
+# Stage 2：把小 slice 轉成 VCD（fsdb2vcd 不帶任何切片 flag）
+sh $RTLDBG/tools/fsdb2vcd.sh slice.fsdb -o slice.vcd
+
+# Stage 3：工具層細切（vcd.py / compare.py 的 --t0/--t1，不變）
+python3 $RTLDBG/tools/compare.py slice.vcd --clk ... --sig ... golden.hex --t0 N --t1 N
+```
+
+### fsdbextract 選項（依 Realtek Verdi FAQ「FsdbExtraction」）
+
+| 選項 | 說明 |
+|------|------|
+| `-bt <time><unit>` | begin time，**單位必填**，如 `-bt 100ns`（不可寫成去單位的 `100`） |
+| `-et <time><unit>` | end time，如 `-et 200ns` |
+| `-time_shift <t><u>` | 平移時間軸，如 `-time_shift -100ns`（向左 100ns） |
+| `-s <hier>` | scope，**slash 分隔**：`/tb/dut`（不可用點號 `tb.dut`） |
+| `-level 0\|1\|2` | **必須緊接在 `-s` 之後**。0=該 scope 及以下全部；1=僅該 scope 內（預設）；2=該 scope 加下一層 |
+| `-o <out.fsdb>` | 輸出 FSDB |
+| `+grid` | 丟到 grid 上跑（建議） |
+
+> 路徑含特殊字元（如 `u1[0]`）：每個特殊字元前加 **7 個反斜線**，並用跳脫引號包住整個路徑。
 
 ---
 
@@ -275,6 +306,7 @@ VCD available (from $dumpvars or fsdb2vcd)
 ```
 FSDB only, no VCD
   ├─ fsdb2vcd -l → scope 列表
+  ├─ fsdbextract → 先在 FSDB 域切片（time/scope），再 fsdb2vcd 轉小 VCD
   ├─ nWave Tcl → signal value 查詢（原生 FSDB 不轉 VCD）
   └─ Verdi KDB → design hierarchy / FSM / connection 查詢
 ```

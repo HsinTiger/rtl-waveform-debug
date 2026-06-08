@@ -42,17 +42,20 @@ cd <你的 sim 目錄>
 # 方式 A：整檔轉（設計小、時間短時用）
 sh $RTLDBG/tools/fsdb2vcd.sh your.fsdb your.vcd
 
-# 方式 B：時間切片轉（只轉你需要看的那段時間）← 大檔案建議用這個
-sh $RTLDBG/tools/fsdb2vcd.sh your.fsdb --bt 1500 --et 2500 -o your.vcd
+# 方式 B：先用 fsdbextract 切時間，再轉（只看你需要的那段時間）← 大檔案建議用這個
+# 切片發生在 FSDB 域（FSDB->FSDB，資料保持壓縮），再把小 slice 轉 VCD（fsdb2vcd 不做切片）
+sh $RTLDBG/tools/fsdbextract.sh your.fsdb -bt 1500ns -et 2500ns -o slice.fsdb +grid
+sh $RTLDBG/tools/fsdb2vcd.sh slice.fsdb -o your.vcd
 
-# 方式 C：時間 + Scope 切片（只轉特定模組的特定時間）← 大設計最省 VCD 體積
+# 方式 C：先用 fsdbextract 切時間 + Scope，再轉（只看特定模組的特定時間）← 大設計最省體積
 # 先用 fsdb2vcd -l your.fsdb 看 scope 層級結構
 fsdb2vcd -l your.fsdb | head -50
-# 再轉
-sh $RTLDBG/tools/fsdb2vcd.sh your.fsdb --bt 2850 --et 3150 --scope tb.dut.phy_ud -o your.vcd
+# 再用 fsdbextract 切片（scope 用斜線 /，時間帶單位，-level 必須接在 -s 後面）
+sh $RTLDBG/tools/fsdbextract.sh your.fsdb -bt 2850ns -et 3150ns -s /tb/dut/phy_ud -level 0 -o slice.fsdb +grid
+sh $RTLDBG/tools/fsdb2vcd.sh slice.fsdb -o your.vcd
 ```
 
-> 小檔案整顆轉沒問題。若訊號很多，只轉你要看的 scope（`fsdb2vcd -h` 看篩選選項），避免 VCD 過大。
+> 小檔案整顆轉沒問題。若訊號很多/時間很長，先用 `fsdbextract` 在 FSDB 域切出要看的時間與 scope（`fsdbextract -h`：`-bt`/`-et` 時間要帶單位如 `100ns`、`-s` 用斜線 `/tb/dut`、`-level 0|1|2` 接在 `-s` 後、`-o` 輸出 FSDB、`+grid` 上 grid 跑），再把小 slice 交給 `fsdb2vcd` 轉 VCD，避免 VCD 過大。
 
 **先自己 sanity check 一下**（也順便找出 clk 的完整名字，等下要給 agent）：
 ```tcsh
@@ -127,12 +130,12 @@ claude
 
 - 別期待它「看波形圖」debug——它讀的是**文字**（VCD/log/hex），圖是另外渲染給你看的。
 - 別期待它一鍵改好流片級 RTL——Day-1 目標是**準確定位 + 合理解釋**，改碼你要 review。
-- 別把 FSDB 直接丟給它——它讀不懂二進位，**一定要先 `fsdb2vcd` 轉成 VCD**。
+- 別把 FSDB 直接丟給它——它讀不懂二進位，**一定要先轉成 VCD**。
 
 ---
 
 ## 一句話總結明天
 
-> 1) `_selftest.sh` 確認工具 OK → 2) `fsdb2vcd.sh` 把你的 fsdb 轉 vcd → 3) `cd $RTLDBG; claude` →
+> 1) `_selftest.sh` 確認工具 OK → 2) 大檔先 `fsdbextract.sh` 切片再 `fsdb2vcd.sh` 轉 vcd（小檔可整顆轉） → 3) `cd $RTLDBG; claude` →
 > 4) 用情境 A/B 的模板貼上你的檔案路徑 → 5) 看 agent 用 `compare.py`/`vcd.py` 指出分歧 cycle 與 RTL 成因 →
 > 6) 跟你已知答案對驗收。

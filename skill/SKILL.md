@@ -21,7 +21,7 @@ what the values *are*.
 
 - **RTL / UVM source** (file paths) — read directly; it is text.
 - **VCD** — IEEE-1364 ASCII waveform. Query via `tools/vcd.py` (never paste raw).
-  - If you are given an **FSDB** instead, convert first: `tools/fsdb2vcd.sh in.fsdb out.vcd` (needs Verdi on PATH).
+  - If you are given an **FSDB** instead, convert first: `tools/fsdb2vcd.sh in.fsdb out.vcd` (needs Verdi on PATH). If the FSDB is **large**, slice it in the FSDB domain first with `tools/fsdbextract.sh` (FSDB→FSDB, e.g. `-bt 100ns -et 200ns -s /tb/dut -level 0 -o slice.fsdb`), then `tools/fsdb2vcd.sh slice.fsdb -o slice.vcd`.
 - **VCS log** (e.g. `vcs.log`) — plain text. `grep` it for errors/`$error`/`UVM_ERROR`/`UVM_FATAL` with timestamps.
 - **C-model hex dump** (intermediate node, e.g. `phyUD`) — the **golden reference**. Load via `tools/cmodel_hex.py`.
 
@@ -36,7 +36,8 @@ what the values *are*.
 | `python3 tools/cmodel_hex.py golden.hex [--node phyUD]` | load golden series as `idx<TAB>hex` |
 | `python3 tools/compare.py dump.vcd --clk <clk> --sig <node> golden.hex [--node phyUD] [--skip-x] [--t0 N --t1 N]` | **find the first divergence** RTL-vs-golden (rc 3 = mismatch). Use `--t0`/`--t1` to compare only a specific time window. |
 | `sh tools/render_wavedrom.sh wave.json5 out.svg` | render WaveJSON to SVG for the engineer |
-| `sh tools/fsdb2vcd.sh input.fsdb [--bt N --et N --scope S] -o out.vcd` | convert FSDB→VCD with optional **time slicing** (`--bt`/`--et` in FSDB timescale units) and **scope filtering** (`--scope`). Use for large FSDBs when you only need a small time window or a specific hierarchy. |
+| `sh tools/fsdbextract.sh in.fsdb -bt <t><unit> -et <t><unit> -s <hier> -level 0\|1\|2 -o slice.fsdb [+grid]` | **slice FIRST in the FSDB domain** (FSDB→FSDB, data stays compressed). Times need a **unit** (`-bt 100ns`, not `100`); scope is **slash-separated** (`/tb/dut`, not `tb.dut`); `-level` MUST follow `-s` (0=scope+all below, 1=in-scope [default], 2=scope+one level); `-time_shift -100ns` shifts the axis; `+grid` runs on the grid (recommended). For special chars in a path (e.g. `u1[0]`) prefix each with 7 backslashes and wrap the path in escaped quotes. Use for large FSDBs when you only need a small time window or a specific hierarchy. (needs Verdi on PATH) |
+| `sh tools/fsdb2vcd.sh in.fsdb -o out.vcd` | convert FSDB→VCD (no slicing — slice first with `fsdbextract.sh`). `fsdb2vcd.sh in.fsdb -l <file>` lists scopes. (needs Verdi on PATH) |
 
 ## Loop A — Debug a failing test (golden-driven)
 

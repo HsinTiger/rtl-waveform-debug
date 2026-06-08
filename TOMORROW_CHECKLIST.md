@@ -87,10 +87,15 @@ python3 $RTLDBG/tools/compare.py \
 
 # 如果來源是 FSDB（需要 Verdi license）：
 fsdb2vcd -l /proj/lab/regression/top.fsdb | head -30  # 看 scope 結構
-sh $RTLDBG/tools/fsdb2vcd.sh /proj/lab/regression/top.fsdb \
-  --bt 2000 --et 5000 \
-  --scope tb.dut \
-  -o /tmp/debug.vcd
+
+# 先在 FSDB 域用 fsdbextract 切片（資料維持壓縮）：
+sh $RTLDBG/tools/fsdbextract.sh /proj/lab/regression/top.fsdb \
+  -bt 2000ns -et 5000ns \
+  -s /tb/dut -level 0 \
+  -o /tmp/slice.fsdb +grid
+
+# 再把小切片轉成 VCD（不帶切片旗標）：
+sh $RTLDBG/tools/fsdb2vcd.sh /tmp/slice.fsdb -o /tmp/debug.vcd
 
 # 如果來源是 VCD（直接用）：
 cp /proj/lab/regression/dump.vcd /tmp/debug.vcd

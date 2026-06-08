@@ -64,10 +64,13 @@ grep -n "ASSERT\|FAIL\|MISMATCH" vcs.log | head -10
 # 確認 FSDB timescale
 fsdb2vcd -l top.fsdb | grep Timescale
 
-# 時間切片（在 T 前後各取 100ns）
+# 時間切片：先在 FSDB domain 用 fsdbextract 切（FSDB→FSDB，資料保持壓縮）
 BT=$((T - 100))
 ET=$((T + 100))
-./tools/fsdb2vcd.sh top.fsdb --bt $BT --et $ET --scope tb.dut.phy_ud -o debug.vcd
+sh tools/fsdbextract.sh top.fsdb -bt ${BT}ns -et ${ET}ns -s /tb/dut/phy_ud -level 0 -o slice.fsdb +grid
+
+# 再把小的 slice.fsdb 轉成 VCD（fsdb2vcd 不帶任何切片參數）
+sh tools/fsdb2vcd.sh slice.fsdb -o debug.vcd
 
 # 如果沒有 Verdi → 確認是否有預先轉好的 VCD，用 vcd.py 的 --t0/--t1 做時間視窗
 python3 tools/vcd.py wavejson debug.vcd --clk tb.clk --sig tb.dut.phyUD --t0 $BT --t1 $ET
